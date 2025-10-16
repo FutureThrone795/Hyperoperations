@@ -1,7 +1,8 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-use crate::expn;
+use crate::expanded_operations::in_flogn_domain;
+use crate::{expn, flogn, fexpn};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ExponentialNumber {
@@ -11,7 +12,11 @@ pub struct ExponentialNumber {
 
 impl Display for ExponentialNumber {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> { 
-        write!(f, "K{}: {}", self.k_index, self.internal_val)
+        if self.k_index < 0 {
+            return write!(f, "K({}): {:}", self.k_index, self.internal_val);
+            
+        }
+        return write!(f, "K{}: {:}", self.k_index, self.internal_val);
     }
 }
 
@@ -22,19 +27,42 @@ impl From<f64> for ExponentialNumber {
 }
 
 impl ExponentialNumber {
-    pub fn in_dotn_domain(self, n: i64) -> bool {
-        if n == 0 {
-            return self.k_index == 0;
+    pub fn in_as_k_index_domain(self, target_k: i64) -> bool {
+        let diff: i64 = target_k - self.k_index;
+
+        if diff > 0 {
+            if !in_flogn_domain(diff as u64, self.internal_val) {
+                return false;
+            }
         }
 
-        if n > 0 {
-            return (self.k_index == 0) && (self.internal_val > expn(n, ExponentialNumber {internal_val: 1.0, k_index: 0}).internal_val);
+        return true;
+    }
+
+    pub fn as_k_index(self, target_k: i64) -> Result<ExponentialNumber, String> {
+        let diff: i64 = target_k - self.k_index;
+
+        if !self.in_as_k_index_domain(target_k) {
+            return Err(format!("ExponentialNumber with k_index {} cannot be expressed with target_k {}", self.k_index, target_k).to_string());
         }
 
-        if n < 0 {
-            return self.k_index < n;
+        if diff == 0 {
+            return Ok(self);
+        }
+        if diff > 0 {
+            /*
+            match flogn(diff as u64, self.internal_val) {
+                Err(err) => return Err(format!("ExponentialNumber with k_index {} cannot be expressed with target_k {}", self.k_index, target_k).to_string()),
+                Ok(ok) => return Ok(ExponentialNumber {internal_val: ok, k_index: target_k})
+            }
+            */
+            //Should be handled by the above self.in_as_k_index_domain(target_k) condition
+            return Ok(ExponentialNumber { internal_val: flogn(diff as u64, self.internal_val).unwrap(), k_index: target_k })
+        }
+        if diff < 0 {
+            return Ok(ExponentialNumber { internal_val: fexpn(diff.unsigned_abs(), self.internal_val), k_index: target_k })
         }
 
-        return false; //Code will never get here
-    }    
+        return Err("You should never get here".to_string());
+    }
 }
