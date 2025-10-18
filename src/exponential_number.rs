@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 use crate::expanded_operations::in_flogn_domain;
-use crate::{expn, flogn, fexpn};
+use crate::{flogn, fexpn};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ExponentialNumber {
@@ -50,19 +50,11 @@ impl ExponentialNumber {
             return Ok(self);
         }
         if diff > 0 {
-            /*
-            match flogn(diff as u64, self.internal_val) {
-                Err(err) => return Err(format!("ExponentialNumber with k_index {} cannot be expressed with target_k {}", self.k_index, target_k).to_string()),
-                Ok(ok) => return Ok(ExponentialNumber {internal_val: ok, k_index: target_k})
-            }
-            */
-            //Should be handled by the above self.in_as_k_index_domain(target_k) condition
+            //Errors should be handled by the above self.in_as_k_index_domain(target_k) condition
             return Ok(ExponentialNumber { internal_val: flogn(diff as u64, self.internal_val).unwrap(), k_index: target_k })
         }
-        if diff < 0 {
-            return Ok(ExponentialNumber { internal_val: fexpn(diff.unsigned_abs(), self.internal_val), k_index: target_k })
-        }
 
-        return Err("You should never get here".to_string());
+        // diff < 0
+        return Ok(ExponentialNumber { internal_val: fexpn(diff.unsigned_abs(), self.internal_val), k_index: target_k })
     }
 }
